@@ -42,8 +42,7 @@ export default function Login() {
 
   const demoAccounts = [
     { email: 'admin@catastro.gob.gt', password: 'admin123', rol: 'Administrador' },
-    { email: 'editor@catastro.gob.gt', password: 'editor123', rol: 'Editor' },
-    { email: 'consulta@catastro.gob.gt', password: 'consulta123', rol: 'Consulta' },
+   
   ];
 
   return (
