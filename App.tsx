@@ -10,7 +10,7 @@ import { useAuthStore } from './src/store/authStore';
 
 const Login = lazy(() => import('./src/pages/Login'));
 const Consulta = lazy(() => import('./src/pages/Consulta'));
-const CertificadosPropietario = lazy(() => import('./src/pages/CertificadosPropietario'));
+const CertificadosPropietario = lazy(() => import('./src/pages/Certificadospropietario'));
 const Home = lazy(() => import('./src/pages/Home'));
 const Dashboard = lazy(() => import('./src/pages/Dashboard'));
 const Departamentos = lazy(() => import('./src/pages/Departamentos'));
