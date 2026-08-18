@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Users, CreditCard, FileText, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { mockInmuebles, mockPropietarios, mockPagos, mockDocumentos } from '../lib/mockData';
 import { useAuthStore } from '../store/authStore';
-
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 const pagosPorMes = [
   { mes: 'Ene', monto: 12500 },
   { mes: 'Feb', monto: 18200 },
@@ -22,13 +22,38 @@ const estadoInmuebles = [
 ];
 
 export default function Dashboard() {
-  const { user } = useAuthStore();
+  const { user, apiFetch } = useAuthStore();
+      // ── Paginación y búsqueda ──
+      const queryClient = useQueryClient();
+      const [page, setPage]                     = useState(1);
+    //  const [pages, setPages]                   = useState(1);
+     // const [total, setTotal]                   = useState(0);
+      const [search, setSearch]                 = useState('');
+      const [debouncedSearch, setDebouncedSearch] = useState('');
+      
+const { data: propietariosCount } = useQuery({
+  queryKey: ['propietariosCount'],
+  queryFn: async () => {
+    const res = await apiFetch(`propietarios/count`);
+    return res.total; // 👈 devuelve solo el número
+  },
+  staleTime: 1000 * 60,
+});
+
+const { data: inmueblesCount } = useQuery({
+  queryKey: ['inmueblesCount'],
+  queryFn: async () => {
+    const res = await apiFetch(`inmuebles/count`);
+    return res.total; // 👈 devuelve solo el número
+  },
+  staleTime: 1000 * 60,
+});
 
   const stats = [
-    { label: 'Total Inmuebles', value: mockInmuebles.length, icon: <Building2 size={20} />, color: 'bg-blue-50 text-blue-600', change: '+3 este mes' },
-    { label: 'Propietarios', value: mockPropietarios.length, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600', change: '+1 este mes' },
-    { label: 'Pagos Registrados', value: mockPagos.length, icon: <CreditCard size={20} />, color: 'bg-amber-50 text-amber-600', change: 'Q97,700 total' },
-    { label: 'Documentos', value: mockDocumentos.length, icon: <FileText size={20} />, color: 'bg-purple-50 text-purple-600', change: '3 pendientes' },
+    { label: 'Total Inmuebles', value: inmueblesCount || 0, icon: <Building2 size={20} />, color: 'bg-blue-50 text-blue-600', /*change: '+3 este mes' */},
+    { label: 'Propietarios', value: propietariosCount || 0, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600', /*change: '+1 este mes' */},
+    { label: 'Pagos Registrados', value: mockPagos.length, icon: <CreditCard size={20} />, color: 'bg-amber-50 text-amber-600', /*change: 'Q97,700 total' */},
+    { label: 'Documentos', value: mockDocumentos.length, icon: <FileText size={20} />, color: 'bg-purple-50 text-purple-600', /*change: '3 pendientes' */},
   ];
 
   const pagosPendientes = mockPagos.filter((p) => p.estado === 'pendiente' || p.estado === 'moroso');
@@ -131,43 +156,11 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Recent activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending payments */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.5 }}
-          className="bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <AlertTriangle size={18} className="text-amber-500" />
-            <h3 className="font-heading font-semibold text-slate-800">Pagos Pendientes / Morosos</h3>
-          </div>
-          {pagosPendientes.length === 0 ? (
-            <div className="flex flex-col items-center py-8 text-slate-400">
-              <CheckCircle size={32} className="text-emerald-300 mb-2" />
-              <p className="text-sm">Sin pagos pendientes</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pagosPendientes.map((pago) => (
-                <div key={pago.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{pago.inmueble?.codigo_catastral}</p>
-                    <p className="text-xs text-slate-500">Año {pago.anio} — T{pago.trimestre}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-slate-800">Q{Number(pago.monto).toLocaleString()}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pago.estado === 'moroso' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {pago.estado}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+        {/* Recent activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+       
+        
+        
 
         {/* Recent payments */}
         <motion.div

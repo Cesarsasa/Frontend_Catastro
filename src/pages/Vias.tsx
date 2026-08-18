@@ -193,7 +193,7 @@ export default function Vias() {
         canAdd={canWrite}
         canEdit={canWrite}
         canDelete={canWrite}
-        searchKeys={['numero', 'tipo_via.nombre', 'nombre']}
+        searchKeys={['numero', 'nombre']}
         addLabel="Nueva Vía"
       />
 

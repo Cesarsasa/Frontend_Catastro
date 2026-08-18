@@ -14,6 +14,9 @@ interface DataTableProps<T> {
   onAdd?: () => void;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  onUploadCertificado?: (row: T) => void; 
+  onPreviewCertificado?: (row: T) => void;
+  hasCertificado?: (row: T) => boolean; // 👈 nuevo
   canAdd?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -30,6 +33,9 @@ export default function DataTable<T extends { id: number }>({
   onAdd,
   onEdit,
   onDelete,
+  onUploadCertificado,
+  onPreviewCertificado,
+  hasCertificado,
   canAdd = true,
   canEdit = true,
   canDelete = true,
@@ -38,7 +44,7 @@ export default function DataTable<T extends { id: number }>({
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-
+/*
   const filtered = data.filter((row) => {
     if (!search) return true;
     return searchKeys.some((key) => {
@@ -46,6 +52,16 @@ export default function DataTable<T extends { id: number }>({
       return String(val ?? '').toLowerCase().includes(search.toLowerCase());
     });
   });
+*/
+  const filtered = data.filter((row) => {
+  if (!search) return true;
+  return searchKeys.some((key) => {
+    const val = String(key)
+      .split('.')
+      .reduce((obj: any, k) => obj?.[k], row);
+    return String(val ?? '').toLowerCase().includes(search.toLowerCase());
+  });
+});
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -91,6 +107,11 @@ export default function DataTable<T extends { id: number }>({
                   {col.label}
                 </th>
               ))}
+              {(onUploadCertificado || onPreviewCertificado) && (
+                <th className="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Certificado
+                </th>
+              )}
               {(canEdit || canDelete) && (
                 <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Acciones
@@ -101,7 +122,7 @@ export default function DataTable<T extends { id: number }>({
           <tbody className="divide-y divide-slate-50">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-6 py-16 text-center text-slate-400">
+                <td colSpan={columns.length + (onUploadCertificado || onPreviewCertificado ? 2 : 1)} className="px-6 py-16 text-center text-slate-400">
                   <div className="flex flex-col items-center gap-2">
                     <Search size={32} className="text-slate-200" />
                     <p className="font-medium">No se encontraron registros</p>
@@ -117,6 +138,28 @@ export default function DataTable<T extends { id: number }>({
                       {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '—')}
                     </td>
                   ))}
+                  {(onUploadCertificado || onPreviewCertificado) && (
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {onUploadCertificado && (
+                      <button
+                        onClick={() => onUploadCertificado(row)}
+                        className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all duration-200"
+                      >
+                        {hasCertificado?.(row) ? 'Cambiar' : 'Subir'}
+                      </button>
+                    )}
+                        {onPreviewCertificado && (
+                          <button
+                            onClick={() => onPreviewCertificado(row)}
+                            className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all duration-200"
+                          >
+                            Vista Previa
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                   {(canEdit || canDelete) && (
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -175,3 +218,10 @@ export default function DataTable<T extends { id: number }>({
     </div>
   );
 }
+
+
+
+
+
+
+

@@ -9,6 +9,8 @@ import { useAuthStore } from './src/store/authStore';
 
 
 const Login = lazy(() => import('./src/pages/Login'));
+const Consulta = lazy(() => import('./src/pages/Consulta'));
+const CertificadosPropietario = lazy(() => import('./src/pages/CertificadosPropietario'));
 const Home = lazy(() => import('./src/pages/Home'));
 const Dashboard = lazy(() => import('./src/pages/Dashboard'));
 const Departamentos = lazy(() => import('./src/pages/Departamentos'));
@@ -51,12 +53,14 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/consulta" element={<Consulta />} />
+            <Route path="/certificados/propietario/:id" element={<CertificadosPropietario />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/inmuebles" element={<ProtectedRoute><Inmuebles /></ProtectedRoute>} />
             <Route path="/propietarios" element={<ProtectedRoute><Propietarios /></ProtectedRoute>} />
-          {/*<Route path="/pagos" element={<ProtectedRoute><Pagos /></ProtectedRoute>} />*/}
+          <Route path="/pagos" element={<ProtectedRoute><Pagos /></ProtectedRoute>} />
             <Route path="/documentos" element={<ProtectedRoute><Documentos /></ProtectedRoute>} />
-            {/*<Route path="/departamentos" element={<ProtectedRoute><Departamentos /></ProtectedRoute>} />*/}
+            <Route path="/departamentos" element={<ProtectedRoute><Departamentos /></ProtectedRoute>} />
             <Route path="/municipios" element={<ProtectedRoute><Municipios /></ProtectedRoute>} />
             <Route path="/zonas" element={<ProtectedRoute><Zonas /></ProtectedRoute>} />
             <Route path="/vias" element={<ProtectedRoute><Vias /></ProtectedRoute>} />

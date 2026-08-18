@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect} from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import FormField, { Input } from '../components/FormField';
 import { mockDepartamentos } from '../lib/mockData';
 import type { Departamento } from '../types';
 import { useAuthStore } from '../store/authStore';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   codigo: z.string().min(1, 'Requerido').max(10, 'Máximo 10 caracteres'),
@@ -19,16 +20,45 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function Departamentos() {
-  const { user } = useAuthStore();
+  const { user, apiFetch} = useAuthStore();
   const canWrite = user?.rol === 'admin' || user?.rol === 'editor';
-  const [data, setData] = useState<Departamento[]>(mockDepartamentos);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Departamento | null>(null);
   const [deleteItem, setDeleteItem] = useState<Departamento | null>(null);
+   const queryClient = useQueryClient();
+    const [page, setPage]                     = useState(1);
+    const [search, setSearch]                 = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+      const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+
+   // ── Debounce: espera 300ms después de que el usuario deja de escribir ──
+      useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 300);
+        return () => clearTimeout(t);
+      }, [search]);
+    
+      // ── Cuando cambia la búsqueda, volver a página 1 ──
+      useEffect(() => { setPage(1); }, [debouncedSearch]);
+  
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+      resolver: zodResolver(schema),
+    });
+  
+        // ── Departamentos API
+        const { data, isLoading, error, refetch } = useQuery({
+          queryKey: ['departamentos', page, debouncedSearch],
+          queryFn: async () => {
+            const params = new URLSearchParams({
+              page: String(page),
+              limit: '20',
+              ...(debouncedSearch && { buscar: debouncedSearch }),
+            });
+            return apiFetch(`departamentos?${params}`);
+          },
+          placeholderData: (prev) => prev,
+          staleTime: 1000 * 60,
+        });
 
   const openAdd = () => { setEditItem(null); reset({ codigo: '', nombre: '' }); setModalOpen(true); };
   const openEdit = (item: Departamento) => { setEditItem(item); reset({ codigo: item.codigo, nombre: item.nombre }); setModalOpen(true); };
@@ -63,12 +93,12 @@ export default function Departamentos() {
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <DataTable
         title="Departamentos"
-        data={data}
+        data={data?.data ?? []} 
         columns={columns}
-        onAdd={canWrite ? openAdd : undefined}
-        onEdit={canWrite ? openEdit : undefined}
-        onDelete={canWrite ? setDeleteItem : undefined}
-        canAdd={canWrite}
+        //onAdd={canWrite ? openAdd : undefined}
+       // onEdit={canWrite ? openEdit : undefined}
+       // onDelete={canWrite ? setDeleteItem : undefined}
+        canAdd={canWrite} 
         canEdit={canWrite}
         canDelete={canWrite}
         searchKeys={['codigo', 'nombre']}
@@ -84,7 +114,7 @@ export default function Departamentos() {
             <Input {...register('nombre')} error={!!errors.nombre} placeholder="Guatemala" maxLength={100} />
           </FormField>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-all duration-200">Cancelar</button>
+              <button type="button" onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-all duration-200">Cancelar</button>
             <button type="submit" className="flex-1 px-4 py-2.5 bg-[#0f2744] text-white text-sm font-medium rounded-lg hover:bg-[#1a3a5c] transition-all duration-200 hover:scale-105">
               {editItem ? 'Actualizar' : 'Crear'}
             </button>

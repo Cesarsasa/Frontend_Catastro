@@ -632,6 +632,15 @@ const viaOptions = [
         message={`¿Estás seguro de eliminar al propietario "${deleteItem?.nombre}"? Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
       />
+       {/* 👇 Overlay de carga */}
+      {submitting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-xl">
+            <div className="w-10 h-10 border-4 border-[#0f2744]/20 border-t-[#0f2744] rounded-full animate-spin" />
+            <p className="text-sm font-medium text-slate-600">Cargando, por favor espera...</p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }/*import React, { useState } from 'react';

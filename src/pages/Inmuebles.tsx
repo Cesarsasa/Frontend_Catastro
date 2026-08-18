@@ -6,11 +6,12 @@ import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
+import SearchableSelect from '../components/SearchableSelect';
 import ConfirmDialog from '../components/ConfirmDialog';
 import FormField, { Input, Select, Textarea } from '../components/FormField';
 import StatusBadge from '../components/StatusBadge';
+
 import { mockInmuebles, mockPropietarios, mockMunicipios, mockZonas, mockVias } from '../lib/mockData';
-import type { Inmueble } from '../types';
 import { useAuthStore } from '../store/authStore';
 import MapaUbicacion, { MapaUbicacionPol} from '../components/Map';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -91,6 +92,11 @@ export default function Inmuebles() {
    // const [total, setTotal]                   = useState(0);
     const [search, setSearch]                 = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+      const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Habilitar certificados solo si canWrite o una bandera específica
+  const enableCertificados = canWrite; 
 
   const { register, handleSubmit, watch,reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -273,6 +279,7 @@ const handleDeleteDoc = async (docId: number, nombre: string) => {
       coordenadas: item.coordenadas,
       lat: item.coordenadas?.coordinates?.[1],
   lng: item.coordenadas?.coordinates?.[0],
+
   
   poligono_puntos:   poligonoPuntos //item.poligono?.coordinates?.[0] ?? []//  poligonoPuntos
       //lat: item.lat,
@@ -391,6 +398,174 @@ const viaOptions = [
     label: `${v.numero} ${v.tipo_via?.nombre ?? ''} - ${v.nombre ?? ''} ${v.zona?.nombre ?? ''}`.trim(),
   })),
 ];
+
+// dentro del mismo componente padre
+/*
+async function handleUploadCertificado(row) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/pdf';
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('inmueble_id', String(row.id));
+
+      // Ajusta la URL a tu endpoint de subida
+      const res = await fetch('/api/certificados/upload', {
+        method: 'POST',
+        body: form,
+        // no pongas Content-Type: fetch lo maneja con FormData
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Upload failed', text);
+        // muestra notificación de error
+        return;
+      }
+
+      const json = await res.json();
+      // json puede contener { url: '/uploads/..', message: 'ok' }
+      console.log('Subida OK', json);
+      // opcional: invalidar queryClient para refrescar lista
+    } catch (err) {
+      console.error('Error subiendo certificado', err);
+    }
+  };
+  input.click();
+}*/
+async function handleUploadCertificado(row: { id: number }) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/pdf';
+
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('inmueble_id', String(row.id));
+
+      // 👇 usa apiUpload en lugar de fetch
+      const res = await apiUpload('certificados/upload', {
+        method: 'POST',
+        body: form,
+      });
+
+      console.log('Certificado subido:', res);
+      toast.success('Certificado subido correctamente');
+
+      // refresca la lista de certificados/inmuebles
+      refetchDocs?.();
+      refetch?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir certificado');
+      console.error('Error en handleUploadCertificado:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  input.click();
+}
+
+
+async function handleUpdateCertificado(certificadoId: number, file: File, inmuebleId: number) {
+  setSubmitting(true);
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('inmueble_id', inmuebleId.toString());
+    form.append('certificado_id', certificadoId.toString()); // si tu backend lo requiere
+
+    const res = await apiUpload('certificados/upload', {
+      method: 'POST', // o 'PUT' si tu backend lo diferencia
+      body: form,
+    });
+
+    console.log('Certificado actualizado:', res);
+    toast.success('Certificado actualizado correctamente');
+
+    // refresca la lista
+    refetchDocs?.();
+    refetch?.();
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Error al actualizar certificado');
+    console.error('Error en handleUpdateCertificado:', err);
+  } finally {
+    setSubmitting(false);
+  }
+}
+
+
+/*function handlePreviewCertificado(row) {
+  // Si tu backend expone /api/certificados/:inmuebleId o similar:
+  const url = `/api/certificados/${row.id}`; // endpoint que devuelve el PDF (Content-Type: application/pdf)
+  //(url);
+  setPreviewUrl(url);
+  setPreviewOpen(true);
+}*/
+  /*async function handlePreviewCertificado(certificado: { id: number }) {
+    try {
+      const res = await apiFetch(`certificados/inmueble/${certificado.id}`, {
+        method: 'GET',
+      });
+
+      if (!res?.url) {
+        toast.error("No hay certificado disponible para este inmueble");
+        return;
+      }
+
+      setPreviewUrl(res.url);   // URL que viene del backend
+      setPreviewOpen(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al obtener certificado');
+      console.error('Error en handlePreviewCertificado:', err);
+    }
+  }*/
+
+async function handlePreviewCertificado(certificado: { id: number }) {
+  try {
+    const data = await apiFetch(`certificados/inmueble/${certificado.id}`, { method: 'GET' });
+
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        toast.error('No hay certificado disponible para este inmueble');
+        return;
+      }
+      // elegir el más reciente o el primero
+      const elegido = data[0];
+      if (!elegido?.url) {
+        toast.error('No hay URL disponible para el certificado');
+        return;
+      }
+      setPreviewUrl(elegido.url);
+      setPreviewOpen(true);
+      return;
+    }
+
+    // si el backend devuelve un objeto
+    if (!data?.url) {
+      toast.error('No hay certificado disponible para este inmueble');
+      return;
+    }
+    setPreviewUrl(data.url);
+    setPreviewOpen(true);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Error al obtener certificado');
+    console.error('Error en handlePreviewCertificado:', err);
+  }
+}
+
+
+
 /*const geojson = {
   type: "Polygon",
   coordinates: [watch('poligono_puntos').map(p => [p.lng, p.lat])]
@@ -420,10 +595,14 @@ const viaOptions = [
         onAdd={canWrite ? openAdd : undefined}
         onEdit={canWrite ? openEdit : undefined}
         onDelete={canWrite ? setDeleteItem : undefined}
+        onUploadCertificado={enableCertificados ? handleUploadCertificado  : undefined}
+        onPreviewCertificado={enableCertificados ? handlePreviewCertificado : undefined}
+        // ahora
+        hasCertificado={(row) => !!row.tiene_certificado}
         canAdd={canWrite}
         canEdit={canWrite}
         canDelete={canWrite}
-        searchKeys={['codigo_catastral', 'colonia', 'no_inscripcion_iusi']}
+        searchKeys={['codigo_catastral', 'colonia', 'no_inscripcion_iusi', 'propietario.nombre']}
         addLabel="Nuevo Inmueble"
       />
 
@@ -440,7 +619,12 @@ const viaOptions = [
                 <Input {...register('no_inscripcion_iusi')} placeholder="IUSI-001-2024" />
               </FormField>
               <FormField label="Propietario">
-                <Select {...register('propietario_id')} options={propOptions} />
+                <SearchableSelect
+    options={propOptions.filter((o) => o.value !== '')} // quita la opción "Sin propietarios"
+    value={watch('propietario_id')}
+    onChange={(val) => setValue('propietario_id', val === '' ? undefined : Number(val))}
+    placeholder="Buscar propietario..."
+  />
               </FormField>
               <FormField label="Estado" required error={errors.estado?.message}>
                 <Select {...register('estado')} error={!!errors.estado} options={[
@@ -749,6 +933,15 @@ const viaOptions = [
             </button>
           </div>
         </form>
+      </Modal>  
+
+      
+       <Modal isOpen={previewOpen} onClose={() => setPreviewOpen(false)} title="Vista previa certificado" size="xl">
+        {previewUrl ? (
+          <iframe src={previewUrl} className="w-full h-[70vh] border rounded" title="Certificado preview" />
+        ) : (
+          <p className="text-sm text-slate-500">No hay certificado para mostrar.</p>
+        )}
       </Modal>
 
       <ConfirmDialog
@@ -759,6 +952,16 @@ const viaOptions = [
         message={`¿Estás seguro de eliminar el inmueble "${deleteItem?.codigo_catastral}"? Esta acción no se puede deshacer.`}
         confirmLabel="Eliminar"
       />
+
+       {/* 👇 Overlay de carga */}
+      {submitting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-xl">
+            <div className="w-10 h-10 border-4 border-[#0f2744]/20 border-t-[#0f2744] rounded-full animate-spin" />
+            <p className="text-sm font-medium text-slate-600">Cargando, por favor espera...</p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

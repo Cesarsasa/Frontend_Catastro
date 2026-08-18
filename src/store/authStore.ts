@@ -68,6 +68,26 @@ export const useAuthStore = create<AuthState>()(
         if (!res.ok) throw new Error(data.message || 'Error en la petición');
         return data;
       },
+      apiDownload: async (endpoint: string, options: RequestInit = {}) => {
+          const token = get().user?.token;
+          const headers: Record<string, string> = {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(options.headers as Record<string, string> || {}),
+          };
+
+          const res = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+          });
+
+          if (res.status === 401) {
+            get().logout();
+            window.location.href = '/login';
+            throw new Error('Sesión expirada');
+          }
+
+          return res; 
+        },
     }),
     {
       name: 'catastro-auth',
