@@ -11,6 +11,7 @@ import { useAuthStore } from './src/store/authStore';
 const Login = lazy(() => import('./src/pages/Login'));
 const Consulta = lazy(() => import('./src/pages/Consulta'));
 const CertificadosPropietario = lazy(() => import('./src/pages/Certificadospropietario'));
+  const ConfirmarNit = lazy(() => import('./src/pages/ConfirmarNit'));
 const Home = lazy(() => import('./src/pages/Home'));
 const Dashboard = lazy(() => import('./src/pages/Dashboard'));
 const Departamentos = lazy(() => import('./src/pages/Departamentos'));
@@ -55,6 +56,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/consulta" element={<Consulta />} />
             <Route path="/certificados/propietario/:id" element={<CertificadosPropietario />} />
+            <Route path="/confirmar-nit" element={<ConfirmarNit />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/inmuebles" element={<ProtectedRoute><Inmuebles /></ProtectedRoute>} />
             <Route path="/propietarios" element={<ProtectedRoute><Propietarios /></ProtectedRoute>} />
