@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
-import { mockAuditorias } from '../lib/mockData';
 import type { Auditoria } from '../types';
+import { useAuthStore } from '../store/authStore';
+import { useQuery } from '@tanstack/react-query';
 
 const accionColors: Record<string, string> = {
   INSERT: 'bg-emerald-100 text-emerald-700',
@@ -13,7 +14,34 @@ const accionColors: Record<string, string> = {
 };
 
 export default function AuditoriaPage() {
-  const [data] = useState<Auditoria[]>(mockAuditorias);
+  const { apiFetch } = useAuthStore();
+
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // ── Debounce búsqueda ──
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
+
+  // ── Auditorías API ──
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['auditorias', page, debouncedSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '20',
+        ...(debouncedSearch && { tabla: debouncedSearch }),
+      });
+      return apiFetch(`auditoria?${params}`);
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 1000 * 60,
+  });
 
   const columns = [
     { key: 'id', label: 'ID', render: (row: Auditoria) => <span className="text-slate-400 text-xs font-mono">#{row.id}</span> },
@@ -34,14 +62,21 @@ export default function AuditoriaPage() {
         </p>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          Error al cargar el registro de auditoría.
+        </div>
+      )}
+
       <DataTable
         title="Registro de Auditoría"
-        data={data}
+        data={data?.data ?? []}
         columns={columns}
         canAdd={false}
         canEdit={false}
         canDelete={false}
         searchKeys={['tabla', 'ip']}
+        isLoading={isLoading}
       />
     </motion.div>
   );

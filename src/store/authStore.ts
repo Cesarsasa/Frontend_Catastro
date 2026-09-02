@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthState>()(
       apiFetch: async (endpoint, options = {}) => {
         const token = get().user?.token;
 
-        const res = await fetch(`${API_URL}${endpoint}`, {
+        const res = await fetch(`${API_URL}/${endpoint}`, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
             ...(options.headers as Record<string, string> || {}),
           };
 
-          const res = await fetch(`${API_URL}${endpoint}`, {
+          const res = await fetch(`${API_URL}/${endpoint}`, {
             ...options,
             headers,
           });
