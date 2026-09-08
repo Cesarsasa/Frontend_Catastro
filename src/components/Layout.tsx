@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
   { label: 'Vías', path: '/vias', icon: <Navigation size={18} /> },
   { label: 'Tipos de Vía', path: '/tipos-via', icon: <Navigation size={18} /> },
   { label: 'Usuarios', path: '/usuarios', icon: <Shield size={18} />, roles: ['admin'] },
-  { label: 'Auditoría', path: '/auditoria', icon: <ClipboardList size={18} />, roles: ['admin', 'editor'] },
+//  { label: 'Auditoría', path: '/auditoria', icon: <ClipboardList size={18} />, roles: ['admin', 'editor'] },
 ];
 
 interface LayoutProps {

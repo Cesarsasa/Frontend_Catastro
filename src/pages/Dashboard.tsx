@@ -2,24 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Users, CreditCard, FileText, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockInmuebles, mockPropietarios, mockPagos, mockDocumentos } from '../lib/mockData';
+
 import { useAuthStore } from '../store/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-const pagosPorMes = [
-  { mes: 'Ene', monto: 12500 },
-  { mes: 'Feb', monto: 18200 },
-  { mes: 'Mar', monto: 9800 },
-  { mes: 'Abr', monto: 22100 },
-  { mes: 'May', monto: 15600 },
-  { mes: 'Jun', monto: 19300 },
-];
 
-const estadoInmuebles = [
-  { name: 'Activo', value: 2, color: '#10b981' },
-  { name: 'En proceso', value: 1, color: '#f59e0b' },
-  { name: 'Inactivo', value: 0, color: '#6b7280' },
-  { name: 'En disputa', value: 0, color: '#ef4444' },
-];
 
 export default function Dashboard() {
   const { user, apiFetch } = useAuthStore();
@@ -48,16 +34,59 @@ const { data: inmueblesCount } = useQuery({
   },
   staleTime: 1000 * 60,
 });
+const { data: pagosCount} = useQuery({
+  queryKey: ['pagosCount'],
+  queryFn: async () => {
+    const res = await apiFetch(`pagos/count`);
+    return res.total; // 👈 devuelve solo el número
+  },
+  staleTime: 1000 * 60,
+});
+const { data: documentosCount} = useQuery({
+  queryKey: ['documentosCount'],
+  queryFn: async () => {
+    const res = await apiFetch(`documentos/count`);
+    return res.total; // 👈 devuelve solo el número
+  },
+  staleTime: 1000 * 60,
+});
 
+const { data: pagosCompletados = [] } = useQuery({
+  queryKey: ['pagosRecientes'],
+  queryFn: async () => {
+    return await apiFetch('pagos/dashboard/pagos-recientes');
+  }
+});
+const { data: estadoData = [] } = useQuery({
+  queryKey: ['estadoInmuebles'],
+  queryFn: async () => {
+    return await apiFetch('inmuebles/estado');
+  }
+});
+/*const { data: pagosPorMes = [] } = useQuery({
+  queryKey: ['recaudacionMensual'],
+  queryFn: async () => {
+    return await apiFetch('pagos/dashboard/recaudacion-mensual');
+  }
+});*/
+
+const estadoInmuebles = estadoData.map(item => ({
+  name: item.estado,
+  value: item._count.estado,
+  color:
+    item.estado === 'activo'
+      ? '#10b981'
+      : item.estado === 'inactivo'
+      ? '#6b7280'
+      : '#f59e0b'
+}));
   const stats = [
     { label: 'Total Inmuebles', value: inmueblesCount || 0, icon: <Building2 size={20} />, color: 'bg-blue-50 text-blue-600', /*change: '+3 este mes' */},
     { label: 'Propietarios', value: propietariosCount || 0, icon: <Users size={20} />, color: 'bg-emerald-50 text-emerald-600', /*change: '+1 este mes' */},
-    { label: 'Pagos Registrados', value: mockPagos.length, icon: <CreditCard size={20} />, color: 'bg-amber-50 text-amber-600', /*change: 'Q97,700 total' */},
-    { label: 'Documentos', value: mockDocumentos.length, icon: <FileText size={20} />, color: 'bg-purple-50 text-purple-600', /*change: '3 pendientes' */},
+    { label: 'Pagos Registrados', value: pagosCount || 0, icon: <CreditCard size={20} />, color: 'bg-amber-50 text-amber-600', /*change: 'Q97,700 total' */},
+    { label: 'Documentos', value: documentosCount || 0, icon: <FileText size={20} />, color: 'bg-purple-50 text-purple-600', /*change: '3 pendientes' */},
   ];
 
-  const pagosPendientes = mockPagos.filter((p) => p.estado === 'pendiente' || p.estado === 'moroso');
-  const pagosCompletados = mockPagos.filter((p) => p.estado === 'pagado');
 
   return (
     <div className="space-y-8">
@@ -107,20 +136,27 @@ const { data: inmueblesCount } = useQuery({
           transition={{ duration: 0.4, delay: 0.3 }}
           className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 p-6"
         >
-          <h3 className="font-heading font-semibold text-slate-800 mb-1">Recaudación Mensual</h3>
-          <p className="text-slate-400 text-xs mb-6">Pagos IUSI registrados por mes (Q)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={pagosPorMes} barSize={32}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                formatter={(v: number) => [`Q${v.toLocaleString()}`, 'Monto']}
-              />
-              <Bar dataKey="monto" fill="#0f2744" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          
+           <div className="flex items-center gap-2 mb-5">
+            <CheckCircle size={18} className="text-emerald-500" />
+            <h3 className="font-heading font-semibold text-slate-800">Pagos Recientes</h3>
+          </div>
+          <div className="space-y-3">
+            {pagosCompletados.map((pago) => (
+              <div key={pago.id} className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <Clock size={14} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{pago.inmueble?.codigo_catastral}</p>
+                    <p className="text-xs text-slate-500">{pago.num_recibo}</p>
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-emerald-700">Q{Number(pago.monto).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
         {/* Pie chart */}
@@ -156,41 +192,7 @@ const { data: inmueblesCount } = useQuery({
         </motion.div>
       </div>
 
-        {/* Recent activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-       
-        
-        
-
-        {/* Recent payments */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-          className="bg-white rounded-2xl border border-slate-200 p-6"
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <CheckCircle size={18} className="text-emerald-500" />
-            <h3 className="font-heading font-semibold text-slate-800">Pagos Recientes</h3>
-          </div>
-          <div className="space-y-3">
-            {pagosCompletados.map((pago) => (
-              <div key={pago.id} className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                    <Clock size={14} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{pago.inmueble?.codigo_catastral}</p>
-                    <p className="text-xs text-slate-500">{pago.num_recibo}</p>
-                  </div>
-                </div>
-                <p className="text-sm font-bold text-emerald-700">Q{Number(pago.monto).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
+      
     </div>
   );
 }

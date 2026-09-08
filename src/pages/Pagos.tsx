@@ -205,7 +205,7 @@ export default function Pagos() {
         title="Pagos"
         data={data?.data ?? []}
         columns={columns}
-        onAdd={canWrite ? openAdd : undefined}
+      //  onAdd={canWrite ? openAdd : undefined}
         onEdit={canWrite ? openEdit : undefined}
         onDelete={canWrite ? setDeleteItem : undefined}
         canAdd={canWrite}
@@ -244,7 +244,7 @@ export default function Pagos() {
             <Select {...register('estado')} error={!!errors.estado} options={estadoOptions} />
           </FormField>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-all duration-200">Cancelar</button>
+           <button type="button" onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-all duration-200">Cancelar</button>
             <button type="submit" disabled={submitting} className="flex-1 px-4 py-2.5 bg-[#0f2744] text-white text-sm font-medium rounded-lg hover:bg-[#1a3a5c] transition-all duration-200 hover:scale-105 disabled:opacity-50">
               {editItem ? 'Actualizar' : 'Crear'}
             </button>
