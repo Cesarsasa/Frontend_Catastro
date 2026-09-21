@@ -3,6 +3,21 @@ import type { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { EditControl } from 'react-leaflet-draw';
+import { Icon } from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Ícono roto en build de producción
+delete (Icon.Default.prototype as any)._getIconUrl;
+Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
+// leaflet-draw 1.0.4 usa una variable `type` sin declarar
+(window as any).type = true;
 
 
 function LocationPicker({ setLatLng }) {
@@ -108,3 +123,4 @@ export function MapaUbicacionPol({ lat, lng, setLatLng, setPoligono, poligono })
     </MapContainer>
   );
 }
+
