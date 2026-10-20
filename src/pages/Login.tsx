@@ -68,15 +68,14 @@ export default function Login() {
               Gestión Catastral<br />Integrada
             </h2>
             <p className="text-white/60 text-sm leading-relaxed">
-              Administra inmuebles, propietarios, pagos de IUSI y documentación catastral desde una plataforma centralizada y segura.
+              Administra inmuebles, propietarios, pagos de certificados y documentación catastral desde una plataforma centralizada y segura.
             </p>
           </div>
           <div className="relative space-y-3">
             {[
               'Registro y consulta de inmuebles',
               'Gestión de propietarios y documentos',
-              'Control de pagos IUSI',
-              'Auditoría completa de operaciones',
+            
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-3">
                 <div className="w-5 h-5 bg-[#e8a020]/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -174,22 +173,6 @@ export default function Login() {
                 )}
               </button>
             </form>
-
-            {/* Demo accounts */}
-            <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Cuentas de demostración</p>
-              <div className="space-y-2">
-                {demoAccounts.map((acc) => (
-                  <div key={acc.email} className="flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-slate-600 font-medium">{acc.rol}:</span>
-                      <span className="text-slate-500 ml-1">{acc.email}</span>
-                    </div>
-                    <span className="text-slate-400 font-mono">{acc.password}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </motion.div>
         </div>
       </div>

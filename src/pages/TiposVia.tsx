@@ -69,6 +69,8 @@ export default function TiposVia() {
         canDelete={canWrite}
         searchKeys={['nombre']}
         addLabel="Nuevo Tipo"
+        
+
       />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? 'Editar Tipo de Vía' : 'Nuevo Tipo de Vía'}>

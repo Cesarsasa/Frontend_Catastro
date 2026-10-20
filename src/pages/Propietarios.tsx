@@ -428,6 +428,12 @@ const viaOptions = [
             searchKeys={['nombre', 'dpi', 'nit', 'email']}
             addLabel="Nuevo Propietario"
             // — búsqueda controlada desde aquí —
+             serverPagination={{
+          page,
+          pages: data?.pages ?? 1,
+          total: data?.total ?? 0,
+          onPageChange: setPage,
+        }}
             searchValue={search}
             onSearchChange={setSearch}
           />

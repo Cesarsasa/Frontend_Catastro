@@ -194,6 +194,13 @@ export default function Vias() {
         canEdit={canWrite}
         canDelete={canWrite}
         searchKeys={['numero', 'nombre']}
+         serverPagination={{
+          page,
+          pages: data?.pages ?? 1,
+          total: data?.total ?? 0,
+          onPageChange: setPage,
+        }}
+        onSearchChange={setSearch}
         addLabel="Nueva Vía"
       />
 

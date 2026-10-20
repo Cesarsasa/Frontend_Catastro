@@ -7,6 +7,14 @@ interface Column<T> {
   render?: (row: T) => React.ReactNode;
 }
 
+// 👇 Paginación del lado del servidor (opcional)
+interface ServerPagination {
+  page: number;
+  pages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}
+
 interface DataTableProps<T> {
   title: string;
   data: T[];
@@ -14,14 +22,17 @@ interface DataTableProps<T> {
   onAdd?: () => void;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
-  onUploadCertificado?: (row: T) => void; 
+  onUploadCertificado?: (row: T) => void;
   onPreviewCertificado?: (row: T) => void;
-  hasCertificado?: (row: T) => boolean; // 👈 nuevo
+  hasCertificado?: (row: T) => boolean;
   canAdd?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   searchKeys?: (keyof T)[];
   addLabel?: string;
+  // 👇 nuevos (opcionales: si no los pasas, la tabla funciona como antes)
+  serverPagination?: ServerPagination;
+  onSearchChange?: (value: string) => void; // búsqueda en el servidor
 }
 
 const PAGE_SIZE = 10;
@@ -41,30 +52,49 @@ export default function DataTable<T extends { id: number }>({
   canDelete = true,
   searchKeys = [],
   addLabel = 'Nuevo Registro',
+  serverPagination,
+  onSearchChange,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-/*
-  const filtered = data.filter((row) => {
-    if (!search) return true;
-    return searchKeys.some((key) => {
-      const val = row[key];
-      return String(val ?? '').toLowerCase().includes(search.toLowerCase());
-    });
-  });
-*/
-  const filtered = data.filter((row) => {
-  if (!search) return true;
-  return searchKeys.some((key) => {
-    const val = String(key)
-      .split('.')
-      .reduce((obj: any, k) => obj?.[k], row);
-    return String(val ?? '').toLowerCase().includes(search.toLowerCase());
-  });
-});
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isServerPaging = !!serverPagination;
+  const isServerSearch = !!onSearchChange;
+
+  // Si la búsqueda es del servidor, los datos ya vienen filtrados
+  const filtered = isServerSearch
+    ? data
+    : data.filter((row) => {
+        if (!search) return true;
+        return searchKeys.some((key) => {
+          const val = String(key)
+            .split('.')
+            .reduce((obj: any, k) => obj?.[k], row);
+          return String(val ?? '').toLowerCase().includes(search.toLowerCase());
+        });
+      });
+
+  // Página actual, total de páginas y registros según el modo
+  const currentPage = isServerPaging ? serverPagination!.page : page;
+  const totalPages = isServerPaging
+    ? Math.max(1, serverPagination!.pages)
+    : Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalCount = isServerPaging ? serverPagination!.total : filtered.length;
+  const paginated = isServerPaging
+    ? filtered // el servidor ya entregó solo esta página
+    : filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const goToPage = (p: number) => {
+    const next = Math.min(totalPages, Math.max(1, p));
+    if (isServerPaging) serverPagination!.onPageChange(next);
+    else setPage(next);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+    onSearchChange?.(value);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -72,7 +102,7 @@ export default function DataTable<T extends { id: number }>({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 border-b border-slate-100">
         <div>
           <h2 className="font-heading font-semibold text-slate-800 text-lg">{title}</h2>
-          <p className="text-slate-400 text-sm mt-0.5">{filtered.length} registros encontrados</p>
+          <p className="text-slate-400 text-sm mt-0.5">{totalCount} registros encontrados</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -81,7 +111,7 @@ export default function DataTable<T extends { id: number }>({
               type="text"
               placeholder="Buscar..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f2744]/20 focus:border-[#0f2744]/40 w-56 transition-all duration-200"
             />
           </div>
@@ -193,20 +223,20 @@ export default function DataTable<T extends { id: number }>({
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
           <p className="text-sm text-slate-500">
-            Página {page} de {totalPages}
+            Página {currentPage} de {totalPages}
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
               aria-label="Página anterior"
             >
               <ChevronLeft size={16} />
             </button>
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
               aria-label="Página siguiente"
             >
@@ -218,10 +248,3 @@ export default function DataTable<T extends { id: number }>({
     </div>
   );
 }
-
-
-
-
-
-
-

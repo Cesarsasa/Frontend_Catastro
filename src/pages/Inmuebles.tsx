@@ -107,8 +107,6 @@ export default function Inmuebles() {
   setSelectedFiles(prev => prev.filter((_, i) => i !== index));
 };
 
-
-
   // ── Debounce: espera 300ms después de que el usuario deja de escribir ──
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -117,6 +115,9 @@ export default function Inmuebles() {
 
   // ── Cuando cambia la búsqueda, volver a página 1 ──
   useEffect(() => { setPage(1); }, [debouncedSearch]);
+
+  const [propSearch, setPropSearch] = useState('');
+const [debouncedPropSearch, setDebouncedPropSearch] = useState('');
 
 // ── inmuebles ──
 const { data, isLoading, error, refetch } = useQuery({
@@ -133,14 +134,34 @@ const { data, isLoading, error, refetch } = useQuery({
   staleTime: 1000 * 60,
 });
 
-
+/*
 // ── propietario ──
 const { data: propietarios } = useQuery({
   queryKey: ['propietarios'],
   queryFn: async () => {
-    const res = await apiFetch('propietarios');
+   const res = await apiFetch('propietarios?limit=1000');
     return res.data ?? [];
   },
+});*/
+
+
+useEffect(() => {
+  const t = setTimeout(() => setDebouncedPropSearch(propSearch), 300);
+  return () => clearTimeout(t);
+}, [propSearch]);
+
+const { data: propietarios } = useQuery({
+  queryKey: ['propietarios-select', debouncedPropSearch],
+  queryFn: async () => {
+    const params = new URLSearchParams({
+      limit: '30',
+      ...(debouncedPropSearch && { buscar: debouncedPropSearch }),
+    });
+    const res = await apiFetch(`propietarios?${params}`);
+    return res.data ?? [];
+  },
+  placeholderData: (prev) => prev,
+  staleTime: 1000 * 60,
 });
 
 
@@ -603,6 +624,13 @@ async function handlePreviewCertificado(certificado: { id: number }) {
         canEdit={canWrite}
         canDelete={canWrite}
         searchKeys={['codigo_catastral', 'colonia', 'no_inscripcion_iusi', 'propietario.nombre']}
+          serverPagination={{
+          page,
+          pages: data?.pages ?? 1,
+          total: data?.total ?? 0,
+          onPageChange: setPage,
+        }}
+        onSearchChange={setSearch}
         addLabel="Nuevo Inmueble"
       />
 
@@ -619,12 +647,14 @@ async function handlePreviewCertificado(certificado: { id: number }) {
                 <Input {...register('no_inscripcion_iusi')} placeholder="IUSI-001-2024" />
               </FormField>
               <FormField label="Propietario">
-                <SearchableSelect
-    options={propOptions.filter((o) => o.value !== '')} // quita la opción "Sin propietarios"
-    value={watch('propietario_id')}
-    onChange={(val) => setValue('propietario_id', val === '' ? undefined : Number(val))}
-    placeholder="Buscar propietario..."
-  />
+             <SearchableSelect
+  options={propOptions.filter((o) => o.value !== '')}
+  value={watch('propietario_id')}
+  onChange={(val) => setValue('propietario_id', val === '' ? undefined : Number(val))}
+  placeholder="Buscar propietario..."
+  onSearchChange={setPropSearch}
+  selectedLabel={editItem?.propietario?.nombre}
+/>
               </FormField>
               <FormField label="Estado" required error={errors.estado?.message}>
                 <Select {...register('estado')} error={!!errors.estado} options={[
@@ -657,7 +687,7 @@ async function handlePreviewCertificado(certificado: { id: number }) {
                 <Input {...register('colonia')} placeholder="Centro" />
               </FormField>
               <FormField label="Dirección Completa">
-                <Input {...register('direccion_completa')} placeholder="6a Av 1-23 Zona 1, Guatemala" />
+                <Input {...register('direccion_completa')} readOnly placeholder="6a Av 1-23 Zona 1, Guatemala (Automatico)" />
               </FormField>
               <div className="sm:col-span-2">
                 <FormField label="Referencia">

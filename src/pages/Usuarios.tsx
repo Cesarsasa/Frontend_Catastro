@@ -154,6 +154,13 @@ const handleDelete = async () => {
         onEdit={openEdit}
         onDelete={setDeleteItem}
         searchKeys={['nombre', 'email']}
+         serverPagination={{
+          page,
+          pages: data?.pages ?? 1,
+          total: data?.total ?? 0,
+          onPageChange: setPage,
+        }}
+        onSearchChange={setSearch}
         addLabel="Nuevo Usuario"
       />
 

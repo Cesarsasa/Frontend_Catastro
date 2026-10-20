@@ -212,6 +212,13 @@ export default function Pagos() {
         canEdit={canWrite}
         canDelete={canWrite}
         searchKeys={['num_recibo', 'nit']}
+         serverPagination={{
+          page,
+          pages: data?.pages ?? 1,
+          total: data?.total ?? 0,
+          onPageChange: setPage,
+        }}
+        onSearchChange={setSearch}
         addLabel="Nuevo Pago"
       />
 
