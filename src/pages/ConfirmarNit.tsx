@@ -6,7 +6,7 @@ export default function SuccessPago() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const reciboId = searchParams.get('recibo_id');
-  const dpi = searchParams.get('dpi');
+  const codigo = searchParams.get('codigo'); // antes: dpi
   const { apiFetch } = useAuthStore();
 
   const [nit, setNit] = useState('');
@@ -14,9 +14,10 @@ export default function SuccessPago() {
   const [loadingSalir, setLoadingSalir] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 👉 Ajusta estas rutas a las que necesites en tu app
-  const RUTA_DESPUES_CONFIRMAR = `/certificados/propietario/${dpi}`;
-  const RUTA_DESPUES_SALIR = `/certificados/propietario/${dpi}`;
+  // Si por alguna razón no viene el código, vuelve a la consulta en lugar de ir a ".../null"
+  const rutaDestino = codigo
+    ? `/certificados/propietario/${encodeURIComponent(codigo)}`
+    : '/consulta';
 
   const enviarIdentificacion = async (valorNit: string) => {
     if (!reciboId) {
@@ -24,19 +25,19 @@ export default function SuccessPago() {
     }
     await apiFetch('pagos/identificacion', {
       method: 'PATCH',
-      body: JSON.stringify({ num_recibo: reciboId, nit: valorNit }),
+      body: JSON.stringify({ num_recibo: reciboId, codigo, nit: valorNit }),
       headers: { 'Content-Type': 'application/json' },
     });
   };
 
   const handleConfirmar = async () => {
-    if (!nit.trim()) return; // el botón ya está disabled en este caso, es solo un resguardo
+    if (!nit.trim()) return;
 
     setError(null);
     setLoadingConfirmar(true);
     try {
       await enviarIdentificacion(nit.trim());
-      navigate(RUTA_DESPUES_CONFIRMAR);
+      navigate(rutaDestino);
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -49,7 +50,7 @@ export default function SuccessPago() {
     setLoadingSalir(true);
     try {
       await enviarIdentificacion(''); // vacío -> el backend lo registra como CF
-      navigate(RUTA_DESPUES_SALIR);
+      navigate(rutaDestino);
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -75,9 +76,7 @@ export default function SuccessPago() {
         disabled={disabled}
       />
 
-      {error && (
-        <p className="text-red-600 text-sm mb-2">{error}</p>
-      )}
+      {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
       <div className="flex gap-3 mt-4">
         <button
