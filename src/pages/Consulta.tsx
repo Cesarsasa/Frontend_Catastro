@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Building2, CreditCard, AlertCircle } from 'lucide-react';
+import { Building2, Hash, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 
 const schema = z.object({
-  dpi: z.string().min(1, 'Ingrese su DPI').regex(/^\d+$/, 'El DPI solo debe contener números'),
+  codigo: z
+    .string()
+    .trim()
+    .min(1, 'Ingrese el código catastral')
+    .max(20, 'El código es demasiado largo')
+    .regex(/^[\w\-./]+$/, 'El código contiene caracteres no válidos'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -27,11 +32,10 @@ export default function ConsultaCertificados() {
     setIsLoading(true);
     setAuthError('');
     try {
-      const propietario = await apiFetch(`propietarios/dpi-user/${encodeURIComponent(data.dpi.trim())}`);
-      navigate(`/certificados/propietario/${propietario.dpi}`);
-      //navigate('/dashboard');
+      const inmueble = await apiFetch(`inmuebles/consulta/${encodeURIComponent(data.codigo)}`);
+      navigate(`/certificados/propietario/${encodeURIComponent(inmueble.codigo_catastral)}`);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'DPI no encontrado');
+      setAuthError(err instanceof Error ? err.message : 'Código catastral no encontrado');
     } finally {
       setIsLoading(false);
     }
@@ -60,13 +64,13 @@ export default function ConsultaCertificados() {
               Consulta de<br />Certificados
             </h2>
             <p className="text-white/60 text-sm leading-relaxed">
-              Ingresa tu DPI para consultar los certificados disponibles de tus inmuebles.
+              Ingresa el código catastral de tu inmueble para consultar su certificado.
             </p>
           </div>
           <div className="relative space-y-3">
             {[
               'Consulta pública, sin necesidad de cuenta',
-              'Certificados por inmueble',
+              'Certificado por inmueble',
               'Estado y vigencia al instante',
               'Descarga directa',
             ].map((feature) => (
@@ -95,7 +99,7 @@ export default function ConsultaCertificados() {
             </div>
 
             <h1 className="font-heading text-slate-800 text-2xl font-bold mb-1">Consultar Certificados</h1>
-            <p className="text-slate-500 text-sm mb-8">Ingresa tu DPI</p>
+            <p className="text-slate-500 text-sm mb-8">Ingresa el código catastral de tu inmueble</p>
 
             {authError && (
               <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
@@ -106,23 +110,23 @@ export default function ConsultaCertificados() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               <div>
-                <label htmlFor="dpi" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  DPI
+                <label htmlFor="codigo" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Código catastral
                 </label>
                 <div className="relative">
-                  <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    id="dpi"
+                    id="codigo"
                     type="text"
-                    inputMode="numeric"
                     autoComplete="off"
-                    placeholder="Ingrese su DPI"
-                    {...register('dpi')}
+                    autoCapitalize="characters"
+                    placeholder="Ingrese el código catastral"
+                    {...register('codigo')}
                     className={`w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200
-                      ${errors.dpi ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-[#2b6cb0]/20 focus:border-[#2b6cb0]/40'}`}
+                      ${errors.codigo ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-[#2b6cb0]/20 focus:border-[#2b6cb0]/40'}`}
                   />
                 </div>
-                {errors.dpi && <p className="text-red-500 text-xs mt-1">{errors.dpi.message}</p>}
+                {errors.codigo && <p className="text-red-500 text-xs mt-1">{errors.codigo.message}</p>}
               </div>
 
               <button
