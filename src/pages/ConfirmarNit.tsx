@@ -5,10 +5,8 @@ import { useAuthStore } from '../store/authStore';
 export default function SuccessPago() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-const reciboId = searchParams.get('recibo_id');
-const rawCodigo = searchParams.get('codigo');
-const codigo =
-  rawCodigo && rawCodigo !== 'null' && rawCodigo !== 'undefined' ? rawCodigo : null;// antes: dpi
+  const reciboId = searchParams.get('recibo_id');
+  const dpi = searchParams.get('dpi');
   const { apiFetch } = useAuthStore();
 
   const [nit, setNit] = useState('');
@@ -16,41 +14,29 @@ const codigo =
   const [loadingSalir, setLoadingSalir] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Si por alguna razón no viene el código, vuelve a la consulta en lugar de ir a ".../null"
-  const rutaDestino = codigo
-    ? `/certificados/propietario/${encodeURIComponent(codigo)}`
-    : '/consulta';
-    const destino = (cod: string | null) =>
-  cod ? `/certificados/propietario/${encodeURIComponent(cod)}` : '/consulta';
+  // 👉 Ajusta estas rutas a las que necesites en tu app
+  const RUTA_DESPUES_CONFIRMAR = `/certificados/propietario/${dpi}`;
+  const RUTA_DESPUES_SALIR = `/certificados/propietario/${dpi}`;
 
-
-  /*const enviarIdentificacion = async (valorNit: string) => {
+  const enviarIdentificacion = async (valorNit: string) => {
     if (!reciboId) {
       throw new Error('No se encontró el número de recibo en la URL');
     }
     await apiFetch('pagos/identificacion', {
       method: 'PATCH',
-      body: JSON.stringify({ num_recibo: reciboId, codigo, nit: valorNit }),
+      body: JSON.stringify({ num_recibo: reciboId, nit: valorNit }),
       headers: { 'Content-Type': 'application/json' },
     });
-  };*/
-  const enviarIdentificacion = async (valorNit: string) => {
-  if (!reciboId) throw new Error('No se encontró el número de recibo en la URL');
-  return apiFetch('pagos/identificacion', {
-    method: 'PATCH',
-    body: JSON.stringify({ num_recibo: reciboId, nit: valorNit }),
-    headers: { 'Content-Type': 'application/json' },
-  });
-};
+  };
 
   const handleConfirmar = async () => {
-    if (!nit.trim()) return;
+    if (!nit.trim()) return; // el botón ya está disabled en este caso, es solo un resguardo
 
     setError(null);
     setLoadingConfirmar(true);
     try {
-      const resp = await enviarIdentificacion(nit.trim()); // '' en handleSalir
-navigate(destino(resp?.codigo_catastral ?? codigo));
+      await enviarIdentificacion(nit.trim());
+      navigate(RUTA_DESPUES_CONFIRMAR);
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -62,8 +48,8 @@ navigate(destino(resp?.codigo_catastral ?? codigo));
     setError(null);
     setLoadingSalir(true);
     try {
-  const resp = await enviarIdentificacion(nit.trim()); // '' en handleSalir
-navigate(destino(resp?.codigo_catastral ?? codigo));
+      await enviarIdentificacion(''); // vacío -> el backend lo registra como CF
+      navigate(RUTA_DESPUES_SALIR);
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -89,7 +75,9 @@ navigate(destino(resp?.codigo_catastral ?? codigo));
         disabled={disabled}
       />
 
-      {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+      {error && (
+        <p className="text-red-600 text-sm mb-2">{error}</p>
+      )}
 
       <div className="flex gap-3 mt-4">
         <button
