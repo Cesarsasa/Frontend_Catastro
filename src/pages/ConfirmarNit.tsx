@@ -6,7 +6,14 @@ export default function SuccessPago() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const reciboId = searchParams.get('recibo_id');
-  const codigo = searchParams.get('codigo');
+
+  // CAMBIO: antes leía 'dpi'; la URL ahora trae 'codigo'
+  const rawCodigo = searchParams.get('codigo');
+  const codigo =
+    rawCodigo && rawCodigo !== 'null' && rawCodigo !== 'undefined'
+      ? rawCodigo
+      : null;
+
   const { apiFetch } = useAuthStore();
 
   const [nit, setNit] = useState('');
@@ -14,15 +21,16 @@ export default function SuccessPago() {
   const [loadingSalir, setLoadingSalir] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 👉 Ajusta estas rutas a las que necesites en tu app
-  const RUTA_DESPUES_CONFIRMAR = `/certificados/propietario/${codigo}`;
-  const RUTA_DESPUES_SALIR = `/certificados/propietario/${codigo}`;
+  // CAMBIO: si no hay código, va a /consulta en vez de ".../null"
+  const rutaDestino = (cod: string | null) =>
+    cod ? `/certificados/propietario/${encodeURIComponent(cod)}` : '/consulta';
 
   const enviarIdentificacion = async (valorNit: string) => {
     if (!reciboId) {
       throw new Error('No se encontró el número de recibo en la URL');
     }
-    await apiFetch('pagos/identificacion', {
+    // CAMBIO: ahora devuelve la respuesta del backend
+    return apiFetch('pagos/identificacion', {
       method: 'PATCH',
       body: JSON.stringify({ num_recibo: reciboId, nit: valorNit }),
       headers: { 'Content-Type': 'application/json' },
@@ -35,8 +43,8 @@ export default function SuccessPago() {
     setError(null);
     setLoadingConfirmar(true);
     try {
-      await enviarIdentificacion(nit.trim());
-      navigate(RUTA_DESPUES_CONFIRMAR);
+      const resp = await enviarIdentificacion(nit.trim());
+      navigate(rutaDestino(resp?.codigo_catastral ?? codigo));
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -48,8 +56,8 @@ export default function SuccessPago() {
     setError(null);
     setLoadingSalir(true);
     try {
-      await enviarIdentificacion(''); // vacío -> el backend lo registra como CF
-      navigate(RUTA_DESPUES_SALIR);
+      const resp = await enviarIdentificacion(''); // vacío -> el backend lo registra como CF
+      navigate(rutaDestino(resp?.codigo_catastral ?? codigo));
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
