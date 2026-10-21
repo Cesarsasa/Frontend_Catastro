@@ -5,8 +5,10 @@ import { useAuthStore } from '../store/authStore';
 export default function SuccessPago() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const reciboId = searchParams.get('recibo_id');
-  const codigo = searchParams.get('codigo'); // antes: dpi
+const reciboId = searchParams.get('recibo_id');
+const rawCodigo = searchParams.get('codigo');
+const codigo =
+  rawCodigo && rawCodigo !== 'null' && rawCodigo !== 'undefined' ? rawCodigo : null;// antes: dpi
   const { apiFetch } = useAuthStore();
 
   const [nit, setNit] = useState('');
@@ -18,8 +20,11 @@ export default function SuccessPago() {
   const rutaDestino = codigo
     ? `/certificados/propietario/${encodeURIComponent(codigo)}`
     : '/consulta';
+    const destino = (cod: string | null) =>
+  cod ? `/certificados/propietario/${encodeURIComponent(cod)}` : '/consulta';
 
-  const enviarIdentificacion = async (valorNit: string) => {
+
+  /*const enviarIdentificacion = async (valorNit: string) => {
     if (!reciboId) {
       throw new Error('No se encontró el número de recibo en la URL');
     }
@@ -28,7 +33,15 @@ export default function SuccessPago() {
       body: JSON.stringify({ num_recibo: reciboId, codigo, nit: valorNit }),
       headers: { 'Content-Type': 'application/json' },
     });
-  };
+  };*/
+  const enviarIdentificacion = async (valorNit: string) => {
+  if (!reciboId) throw new Error('No se encontró el número de recibo en la URL');
+  return apiFetch('pagos/identificacion', {
+    method: 'PATCH',
+    body: JSON.stringify({ num_recibo: reciboId, nit: valorNit }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
 
   const handleConfirmar = async () => {
     if (!nit.trim()) return;
@@ -36,8 +49,8 @@ export default function SuccessPago() {
     setError(null);
     setLoadingConfirmar(true);
     try {
-      await enviarIdentificacion(nit.trim());
-      navigate(rutaDestino);
+      const resp = await enviarIdentificacion(nit.trim()); // '' en handleSalir
+navigate(destino(resp?.codigo_catastral ?? codigo));
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
@@ -49,8 +62,8 @@ export default function SuccessPago() {
     setError(null);
     setLoadingSalir(true);
     try {
-      await enviarIdentificacion(''); // vacío -> el backend lo registra como CF
-      navigate(rutaDestino);
+  const resp = await enviarIdentificacion(nit.trim()); // '' en handleSalir
+navigate(destino(resp?.codigo_catastral ?? codigo));
     } catch (err: any) {
       setError(err?.message || 'Error confirmando pago');
     } finally {
