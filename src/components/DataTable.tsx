@@ -24,6 +24,7 @@ interface DataTableProps<T> {
   onDelete?: (row: T) => void;
   onUploadCertificado?: (row: T) => void;
   onPreviewCertificado?: (row: T) => void;
+    onGenerateCertificado?: (row: T) => void;
   hasCertificado?: (row: T) => boolean;
   canAdd?: boolean;
   canEdit?: boolean;
@@ -46,6 +47,7 @@ export default function DataTable<T extends { id: number }>({
   onDelete,
   onUploadCertificado,
   onPreviewCertificado,
+  onGenerateCertificado,
   hasCertificado,
   canAdd = true,
   canEdit = true,
@@ -60,7 +62,7 @@ export default function DataTable<T extends { id: number }>({
 
   const isServerPaging = !!serverPagination;
   const isServerSearch = !!onSearchChange;
-
+  const showCertColumn = !!(onUploadCertificado || onPreviewCertificado || onGenerateCertificado);
   // Si la búsqueda es del servidor, los datos ya vienen filtrados
   const filtered = isServerSearch
     ? data
@@ -137,11 +139,11 @@ export default function DataTable<T extends { id: number }>({
                   {col.label}
                 </th>
               ))}
-              {(onUploadCertificado || onPreviewCertificado) && (
-                <th className="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Certificado
-                </th>
-              )}
+                      {showCertColumn && (
+            <th className="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Certificado
+            </th>
+          )}
               {(canEdit || canDelete) && (
                 <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Acciones
@@ -152,7 +154,7 @@ export default function DataTable<T extends { id: number }>({
           <tbody className="divide-y divide-slate-50">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (onUploadCertificado || onPreviewCertificado ? 2 : 1)} className="px-6 py-16 text-center text-slate-400">
+                <td colSpan={columns.length + (showCertColumn ? 2 : 1)} className="px-6 py-16 text-center text-slate-400">
                   <div className="flex flex-col items-center gap-2">
                     <Search size={32} className="text-slate-200" />
                     <p className="font-medium">No se encontraron registros</p>
@@ -168,28 +170,38 @@ export default function DataTable<T extends { id: number }>({
                       {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '—')}
                     </td>
                   ))}
-                  {(onUploadCertificado || onPreviewCertificado) && (
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {onUploadCertificado && (
-                      <button
-                        onClick={() => onUploadCertificado(row)}
-                        className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all duration-200"
-                      >
-                        {hasCertificado?.(row) ? 'Cambiar' : 'Subir'}
-                      </button>
-                    )}
-                        {onPreviewCertificado && (
-                          <button
-                            onClick={() => onPreviewCertificado(row)}
-                            className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all duration-200"
-                          >
-                            Vista Previa
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+                 {showCertColumn && (
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      {onUploadCertificado && (
+                        <button
+                          onClick={() => onUploadCertificado(row)}
+                          className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all duration-200"
+                        >
+                          {hasCertificado?.(row) ? 'Cambiar' : 'Subir'}
+                        </button>
+                      )}
+
+                      {onPreviewCertificado && (
+                        <button
+                          onClick={() => onPreviewCertificado(row)}
+                          className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all duration-200"
+                        >
+                          Vista Previa
+                        </button>
+                      )}
+
+                      {onGenerateCertificado && (
+                        <button
+                          onClick={() => onGenerateCertificado(row)}
+                          className="px-3 py-1.5 text-xs font-medium text-[#0f2744] bg-[#0f2744]/5 hover:bg-[#0f2744]/10 rounded-lg transition-all duration-200"
+                        >
+                          Generar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
                   {(canEdit || canDelete) && (
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

@@ -76,7 +76,7 @@ const tipoColors: Record<string, string> = {
 };
 
 export default function Inmuebles() {
-   const { user, apiFetch, apiUpload } = useAuthStore();
+   const { user, apiFetch, apiUpload, apiDownload } = useAuthStore();
   const canWrite = user?.rol === 'admin' || user?.rol === 'editor';
   //const [data, setData] = useState<Inmueble[]>(mockInmuebles);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -525,7 +525,35 @@ async function handleUpdateCertificado(certificadoId: number, file: File, inmueb
   }
 }
 
+async function handleGenerarCertificado(row: { id: number; codigo_catastral?: string }) {
+  setSubmitting(true);
+  try {
+    const res = await apiDownload(`certificadodoc/inmueble/${row.id}/certificaciondoc`);
 
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error ?? 'Error al generar el certificado');
+    }
+
+    // Descarga el .docx
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `certificacion-${row.codigo_catastral ?? row.id}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    toast.success('Certificado generado');
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Error al generar el certificado');
+    console.error('Error en handleGenerarCertificado:', err);
+  } finally {
+    setSubmitting(false);
+  }
+}
 /*function handlePreviewCertificado(row) {
   // Si tu backend expone /api/certificados/:inmuebleId o similar:
   const url = `/api/certificados/${row.id}`; // endpoint que devuelve el PDF (Content-Type: application/pdf)
@@ -618,6 +646,7 @@ async function handlePreviewCertificado(certificado: { id: number }) {
         onDelete={canWrite ? setDeleteItem : undefined}
         onUploadCertificado={enableCertificados ? handleUploadCertificado  : undefined}
         onPreviewCertificado={enableCertificados ? handlePreviewCertificado : undefined}
+        onGenerateCertificado={enableCertificados ? handleGenerarCertificado : undefined}
         // ahora
         hasCertificado={(row) => !!row.tiene_certificado}
         canAdd={canWrite}

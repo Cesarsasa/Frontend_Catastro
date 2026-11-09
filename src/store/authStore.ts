@@ -11,6 +11,8 @@ interface AuthState {
   login: (user: AuthUser) => void;
   logout: () => void;
   apiFetch: (endpoint: string, options?: RequestInit) => Promise<any>;
+    apiUpload: (endpoint: string, options?: RequestInit) => Promise<any>;
+  apiDownload: (endpoint: string, options?: RequestInit) => Promise<Response>;
 }
 
 export const useAuthStore = create<AuthState>()(
